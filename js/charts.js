@@ -130,8 +130,8 @@ async function renderChoroplethMap(data, metric = 'confirmed') {
                             Deaths: ${formatNumber(cd.deaths)}<br>
                             Cases/Million: ${formatNumber(cd.casesPerMillion)}<br>
                             Fatality Rate: ${cd.confirmed > 0 ? (cd.deaths/cd.confirmed*100).toFixed(2) : '0'}%`)
-                        .style('left',(event.pageX+14)+'px')
-                        .style('top', (event.pageY-50)+'px');
+                        .style('left',(event.clientX+14)+'px')
+                        .style('top', (event.clientY-50)+'px');
                     d3.select(this).attr('stroke-width',2).attr('stroke','#3B82F6');
                 }
             })
@@ -199,7 +199,7 @@ function showFallbackMap(svg, width, height, data, metric) {
             .on('mouseover', function(event) {
                 getTooltip().style('opacity',1)
                     .html(`<strong>${d.country}</strong><br>${metricLabel[metric]||metric}: ${formatNumber(d[metric])}`)
-                    .style('left',(event.pageX+10)+'px').style('top',(event.pageY-30)+'px');
+                    .style('left',(event.clientX+10)+'px').style('top',(event.clientY-30)+'px');
             })
             .on('mouseout', () => getTooltip().style('opacity',0));
         svg.append('text').attr('x',x).attr('y',y+r+14).attr('text-anchor','middle')
@@ -274,7 +274,7 @@ function renderBarChart(data, metric = 'confirmed', topN = 10) {
                     Deaths: ${formatNumber(d.deaths)}<br>
                     Cases/Million: ${formatNumber(d.casesPerMillion)}<br>
                     Fatality Rate: ${d.confirmed>0 ? (d.deaths/d.confirmed*100).toFixed(2) : '0'}%`)
-                .style('left',(event.pageX+10)+'px').style('top',(event.pageY-40)+'px');
+                .style('left',(event.clientX+10)+'px').style('top',(event.clientY-40)+'px');
             d3.select(this).attr('opacity',0.8);
         })
         .on('mouseout', function() {
@@ -318,12 +318,15 @@ function renderPieChart(data) {
     const radius  = Math.min(pieAreaWidth * 0.45, height * 0.44);
     const centerX = pieAreaWidth / 2;
 
+    const metric = document.getElementById('metricSelect')?.value || 'confirmed';
+    const metricKey = ['totalTests','testsPerMillion','casesPerMillion','deathsPerMillion'].includes(metric) ? 'confirmed' : metric;
+
     d3.select('#pieChart').selectAll('*').remove();
 
     const regionData = {};
     data.forEach(d => {
         const c = d.continent || 'Other';
-        regionData[c] = (regionData[c]||0) + (d.confirmed||0);
+        regionData[c] = (regionData[c]||0) + (d[metricKey]||0);
     });
 
     const pieData = Object.entries(regionData)
@@ -352,15 +355,16 @@ function renderPieChart(data) {
             d3.select(this).transition().duration(150).attr('d',arcH);
             getTooltip().style('opacity',1)
                 .html(`<strong>${d.data.region}</strong><br>Cases: ${formatNumber(d.data.value)}<br>Share: ${((d.data.value/total)*100).toFixed(1)}%`)
-                .style('left',(event.pageX+10)+'px').style('top',(event.pageY-30)+'px');
+                .style('left',(event.clientX+10)+'px').style('top',(event.clientY-30)+'px');
         })
         .on('mouseout', function() {
             d3.select(this).transition().duration(150).attr('d',arc);
             getTooltip().style('opacity',0);
         });
 
+    const centerLabel = metricKey === 'confirmed' ? 'Cases' : metricKey === 'deaths' ? 'Deaths' : metricKey === 'recovered' ? 'Recovered' : 'Active';
     svg.append('text').attr('text-anchor','middle').attr('y',-8)
-        .style('font-size','11px').style('fill','var(--text-tertiary)').text('Global');
+        .style('font-size','11px').style('fill','var(--text-tertiary)').text(centerLabel);
     svg.append('text').attr('text-anchor','middle').attr('y',10)
         .style('font-size','13px').style('font-weight','700').style('fill','var(--text-primary)')
         .text(formatNumberShort(total));
@@ -529,7 +533,7 @@ function renderLineChart(data, timeRange = 'all', mode = 'cumulative') {
                 ? `<strong>${dateStr}</strong><br>New Cases: ${formatNumber(d.newCases)}<br>New Deaths: ${formatNumber(d.newDeaths)}<br>New Recovered: ${formatNumber(d.newRecovered)}`
                 : `<strong>${dateStr}</strong><br>Confirmed: ${formatNumber(d.cases)}<br>Deaths: ${formatNumber(d.deaths)}<br>Recovered: ${formatNumber(d.recovered)}<br>Active: ${formatNumber(d.active)}`;
             getTooltip().style('opacity',1).html(tip)
-                .style('left',(event.pageX+14)+'px').style('top',(event.pageY-50)+'px');
+                .style('left',(event.clientX+14)+'px').style('top',(event.clientY-50)+'px');
         });
 }
 
@@ -617,7 +621,7 @@ function renderBubbleChart(data) {
                     Deaths/Million: ${formatNumber(d.deathsPerMillion)}<br>
                     Tests/Million: ${formatNumber(d.testsPerMillion)}<br>
                     Fatality Rate: ${d.confirmed>0?(d.deaths/d.confirmed*100).toFixed(2):0}%`)
-                .style('left',(event.pageX+10)+'px').style('top',(event.pageY-30)+'px');
+                .style('left',(event.clientX+10)+'px').style('top',(event.clientY-30)+'px');
         })
         .on('mouseout', function() {
             d3.select(this).attr('opacity',0.72);
@@ -700,7 +704,7 @@ function renderHorizontalBarChart(data) {
                     Deaths: ${formatNumber(d.deaths)}<br>
                     Confirmed: ${formatNumber(d.confirmed)}<br>
                     Deaths/Million: ${formatNumber(d.deathsPerMillion)}`)
-                .style('left',(event.pageX+10)+'px').style('top',(event.pageY-30)+'px');
+                .style('left',(event.clientX+10)+'px').style('top',(event.clientY-30)+'px');
             d3.select(this).attr('opacity',0.8);
         })
         .on('mouseout', function() {
@@ -726,11 +730,15 @@ function renderTreemapChart(data) {
     const width  = container.clientWidth || 500;
     const height = 420;
 
+    const metric = document.getElementById('metricSelect')?.value || 'confirmed';
+    const safeMetric = ['casesPerMillion','deathsPerMillion','testsPerMillion'].includes(metric) ? metric : metric;
+
     d3.select('#treemapChart').selectAll('*').remove();
 
     const grouped = {};
     data.forEach(d => {
-        if (d.continent && d.confirmed > 0) {
+        const val = d[safeMetric] || 0;
+        if (d.continent && val > 0) {
             if (!grouped[d.continent]) grouped[d.continent] = [];
             grouped[d.continent].push(d);
         }
@@ -743,7 +751,8 @@ function renderTreemapChart(data) {
             name: region,
             children: countries.slice(0,12).map(c => ({
                 name:         c.country,
-                value:        c.confirmed||0,
+                value:        c[safeMetric]||0,
+                metricLabel:  metricLabel[safeMetric] || safeMetric,
                 fatalityRate: c.confirmed>0 ? (c.deaths/c.confirmed*100) : 0,
                 cpm:          c.casesPerMillion||0,
             })),
@@ -774,10 +783,10 @@ function renderTreemapChart(data) {
             d3.select(this).attr('opacity',0.65);
             getTooltip().style('opacity',1)
                 .html(`<strong>${d.data.name}</strong><br>Region: ${d.parent.data.name}<br>
-                    Cases: ${formatNumber(d.data.value)}<br>
+                    ${d.data.metricLabel}: ${formatNumber(d.data.value)}<br>
                     Cases/Million: ${formatNumber(d.data.cpm)}<br>
                     Fatality Rate: ${d.data.fatalityRate.toFixed(2)}%`)
-                .style('left',(event.pageX+10)+'px').style('top',(event.pageY-30)+'px');
+                .style('left',(event.clientX+10)+'px').style('top',(event.clientY-30)+'px');
         })
         .on('mouseout', function() {
             d3.select(this).attr('opacity',0.88);
@@ -866,15 +875,31 @@ function renderRadarChart(data, country1, country2) {
         const pts = coords(metrics.map(m=>m.v1));
         svg.append('path').datum(pts).attr('d',lineG)
             .attr('fill','rgba(59,130,246,0.2)').attr('stroke','#3B82F6').attr('stroke-width',2);
-        pts.forEach(pt => svg.append('circle').attr('cx',pt[0]).attr('cy',pt[1])
-            .attr('r',4).attr('fill','#3B82F6').attr('stroke','#fff').attr('stroke-width',1.5));
+        pts.forEach((pt,i) => svg.append('circle').attr('cx',pt[0]).attr('cy',pt[1])
+            .attr('r',5).attr('fill','#3B82F6').attr('stroke','#fff').attr('stroke-width',1.5)
+            .style('cursor','pointer')
+            .on('mouseover', function(event) {
+                d3.select(this).attr('r',8);
+                getTooltip().style('opacity',1)
+                    .html(`<strong>${country1}</strong><br>${metrics[i].name}: <strong>${formatNumber(metrics[i].v1)}</strong>${metrics[i].name==='Fatality %'?'%':''}`)
+                    .style('left',(event.clientX+12)+'px').style('top',(event.clientY-40)+'px');
+            })
+            .on('mouseout', function() { d3.select(this).attr('r',5); getTooltip().style('opacity',0); }));
     }
     if (c2) {
         const pts = coords(metrics.map(m=>m.v2));
         svg.append('path').datum(pts).attr('d',lineG)
             .attr('fill','rgba(239,68,68,0.2)').attr('stroke','#EF4444').attr('stroke-width',2);
-        pts.forEach(pt => svg.append('circle').attr('cx',pt[0]).attr('cy',pt[1])
-            .attr('r',4).attr('fill','#EF4444').attr('stroke','#fff').attr('stroke-width',1.5));
+        pts.forEach((pt,i) => svg.append('circle').attr('cx',pt[0]).attr('cy',pt[1])
+            .attr('r',5).attr('fill','#EF4444').attr('stroke','#fff').attr('stroke-width',1.5)
+            .style('cursor','pointer')
+            .on('mouseover', function(event) {
+                d3.select(this).attr('r',8);
+                getTooltip().style('opacity',1)
+                    .html(`<strong>${country2}</strong><br>${metrics[i].name}: <strong>${formatNumber(metrics[i].v2)}</strong>${metrics[i].name==='Fatality %'?'%':''}`)
+                    .style('left',(event.clientX+12)+'px').style('top',(event.clientY-40)+'px');
+            })
+            .on('mouseout', function() { d3.select(this).attr('r',5); getTooltip().style('opacity',0); }));
     }
 
     // Legend with stats
@@ -894,7 +919,7 @@ function renderRadarChart(data, country1, country2) {
 }
 
 // ── 9. Continent Outcome Chart (100% Stacked Bar) ────────────────────────────
-function renderContinentOutcomeChart(data) {
+function renderContinentOutcomeChart(data, sortBy = 'recovered') {
     const container = document.getElementById('outcomeChart');
     if (!container) return;
 
@@ -926,7 +951,9 @@ function renderContinentOutcomeChart(data) {
             deathsPct:    (v.deaths    / v.confirmed * 100),
             total:         v.confirmed,
         }))
-        .sort((a, b) => b.recoveredPct - a.recoveredPct);
+        .sort((a, b) => sortBy === 'deaths' ? b.deathsPct - a.deathsPct :
+                        sortBy === 'active'  ? b.activePct  - a.activePct  :
+                        b.recoveredPct - a.recoveredPct);
 
     if (!fd.length) return;
 
@@ -976,8 +1003,8 @@ function renderContinentOutcomeChart(data) {
                     d3.select(this).attr('opacity', 1);
                     getTooltip().style('opacity', 1)
                         .html(`<strong>${d.continent}</strong><br>${seg.label}: ${val.toFixed(1)}%<br>Total Confirmed: ${formatNumber(d.total)}`)
-                        .style('left', (event.pageX + 10) + 'px')
-                        .style('top',  (event.pageY - 30) + 'px');
+                        .style('left', (event.clientX + 10) + 'px')
+                        .style('top',  (event.clientY - 30) + 'px');
                 })
                 .on('mouseout', function() {
                     d3.select(this).attr('opacity', 0.85);

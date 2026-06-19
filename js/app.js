@@ -4,13 +4,14 @@
  */
 
 // ── Global state ──────────────────────────────────────────────────────────────
-let globalData      = [];
-let timeSeriesData  = [];
-let currentMetric   = 'confirmed';
-let currentRegion   = 'all';
-let currentTopN     = 10;
-let isAnimating     = true;
-let lineChartMode   = 'cumulative'; // 'cumulative' | 'daily'
+let globalData        = [];
+let timeSeriesData    = [];
+let currentMetric     = 'confirmed';
+let currentRegion     = 'all';
+let currentTopN       = 10;
+let isAnimating       = true;
+let lineChartMode     = 'cumulative'; // 'cumulative' | 'daily'
+let outcomeSortMode   = 'recovered';  // 'recovered' | 'deaths' | 'active'
 
 // ── Country name → ISO-2 code (worldometer naming) ───────────────────────────
 const countryNameToISO2 = {
@@ -362,7 +363,7 @@ function renderAllVisualizations() {
     renderBubbleChart(fd);
     renderHorizontalBarChart(fd);
     renderTreemapChart(fd);
-    renderContinentOutcomeChart(fd);
+    renderContinentOutcomeChart(fd, outcomeSortMode);
 
     const c1 = document.getElementById('radarCountry1')?.value || '';
     const c2 = document.getElementById('radarCountry2')?.value || '';
@@ -389,6 +390,16 @@ function initControls() {
         renderAllVisualizations();
     });
     document.getElementById('exportBtn')?.addEventListener('click', exportDataToCSV);
+
+    // Outcome chart sort cycle: recovered → deaths → active → recovered
+    document.getElementById('outcomeSortBtn')?.addEventListener('click', () => {
+        const cycle = { recovered: 'deaths', deaths: 'active', active: 'recovered' };
+        const labels = { recovered: 'Sort: Recovery %', deaths: 'Sort: Deaths %', active: 'Sort: Active %' };
+        outcomeSortMode = cycle[outcomeSortMode] || 'recovered';
+        const btn = document.getElementById('outcomeSortBtn');
+        if (btn) btn.title = labels[outcomeSortMode];
+        renderContinentOutcomeChart(getFilteredData(), outcomeSortMode);
+    });
 }
 
 function initTimeRangeButtons() {
